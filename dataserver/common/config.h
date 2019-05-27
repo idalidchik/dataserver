@@ -6,30 +6,56 @@
 
 #include "dataserver/common/stdcommon.h"
 
-namespace sdl {
 #if SDL_DEBUG || defined(SDL_TRACE_RELEASE)
+#define SDL_TRACE_ENABLED   1
+#else
+#define SDL_TRACE_ENABLED   0
+#endif
+
+namespace sdl {
+#if SDL_TRACE_ENABLED
     struct no_endl{};
     struct debug {
-        static int & warning_level() { 
-            static int value = 1; 
-            return value;
-        }
-        static bool & is_unit_test() {
-            static bool value = false;
-            return value;
-        }
+        static int & warning_level();
+        static bool & is_unit_test();
+        static bool & is_print_timestamp();
         static void trace(no_endl) {}
-        static void trace() { std::cout << std::endl; }
+        static void trace();
+        static void print_timestamp();
+        static void print_timestampw();
+        static void trace_with_timestamp();
+        static void tracew_with_timestamp();
+
+        template<typename... Ts>
+        static void trace(decltype(nullptr), Ts&&... params) {
+            std::cout << "nullptr";
+            trace(std::forward<Ts>(params)...);
+        }
         template<typename T, typename... Ts>
         static void trace(T && value, Ts&&... params) {
             std::cout << value;
             trace(std::forward<Ts>(params)...);
         }
         static void tracew() { std::wcout << std::endl; }
+        template<typename... Ts>
+        static void tracew(decltype(nullptr), Ts&&... params) {
+            std::wcout << "nullptr";
+            tracew(std::forward<Ts>(params)...);
+        }
         template<typename T, typename... Ts>
         static void tracew(T && value, Ts&&... params) {
             std::wcout << value;
             tracew(std::forward<Ts>(params)...);
+        }
+        template<typename T, typename... Ts>
+        static void trace_with_timestamp(T && value, Ts&&... params) {
+            print_timestamp();
+            trace(std::forward<T>(value), std::forward<Ts>(params)...);
+        }
+        template<typename T, typename... Ts>
+        static void tracew_with_timestamp(T && value, Ts&&... params) {
+            print_timestampw();
+            tracew(std::forward<T>(value), std::forward<Ts>(params)...);
         }
         template<typename T, typename... Ts>
         static void trace_if(const bool condition, T && value, Ts&&... params) {
@@ -37,20 +63,21 @@ namespace sdl {
                 trace(std::forward<T>(value), std::forward<Ts>(params)...);
             }
         }
-        static void warning(const char * message, const char * fun, const int line) {
-            if (warning_level()) {
-                std::cout << "\nwarning (" << message << ") in " << fun << " at line " << line << std::endl; 
-                assert(warning_level() < 2);
+        template<typename T, typename... Ts>
+        static void trace_if_with_timestamp(const bool condition, T && value, Ts&&... params) {
+            if (condition) {
+                trace_with_timestamp(std::forward<T>(value), std::forward<Ts>(params)...);
             }
         }
+        static void warning(const char * message, const char * fun, const int line);
     };
 #endif
 } // sdl
 
-#if SDL_DEBUG || defined(SDL_TRACE_RELEASE)
-#define SDL_TRACE(...)              sdl::debug::trace(__VA_ARGS__)
-#define SDL_TRACEW(...)             sdl::debug::tracew(__VA_ARGS__)
-#define SDL_TRACE_IF(...)           sdl::debug::trace_if(__VA_ARGS__)
+#if SDL_TRACE_ENABLED
+#define SDL_TRACE(...)              sdl::debug::trace_with_timestamp(__VA_ARGS__)
+#define SDL_TRACEW(...)             sdl::debug::tracew_with_timestamp(__VA_ARGS__)
+#define SDL_TRACE_IF(...)           sdl::debug::trace_if_with_timestamp(__VA_ARGS__)
 #define SDL_TRACE_FILE              ((void)0)
 #define SDL_TRACE_FUNCTION          SDL_TRACE(__FUNCTION__)
 #define SDL_DEBUG_SETPRECISION(...) std::cout << std::setprecision(__VA_ARGS__)
@@ -65,8 +92,12 @@ namespace sdl {
 #define SDL_TRACE_UTF8(...)         ((void)0)
 #endif
 
-#if defined(SDL_OS_WIN32) && SDL_DEBUG && defined(NDEBUG) 
+#if SDL_DEBUG && defined(NDEBUG) 
+#if defined(SDL_OS_WIN32)
 #define SDL_NDEBUG_ASSERT(x) (void)(!!(x) || (sdl::debug::warning(#x, __FUNCTION__, __LINE__), __debugbreak(), 0))
+#else
+#define SDL_NDEBUG_ASSERT(x) (void)(!!(x) || (sdl::debug::warning(#x, __FUNCTION__, __LINE__), __builtin_trap(), 0))   
+#endif
 #endif
 
 #if SDL_DEBUG
@@ -136,6 +167,7 @@ inline void SDL_ASSERT_1(bool x)    { assert(x); }
 #define IS_PDP_ENDIAN    (CURRENT_BYTE_ORDER == PDP_ENDIAN_BYTE_ORDER)
 
 #define A_STATIC_ASSERT_IS_POD(...)         static_assert(std::is_pod<__VA_ARGS__>::value, "std::is_pod")
+#define A_STATIC_ASSERT_NOT_POD(...)        static_assert(!std::is_pod<__VA_ARGS__>::value, "!std::is_pod")
 #define A_STATIC_CHECK_IS_POD(...)          static_assert(std::is_pod<decltype(__VA_ARGS__)>::value, "std::is_pod")
 #define A_STATIC_ASSERT_IS_INTEGRAL(...)    static_assert(std::is_integral<__VA_ARGS__>::value, "std::is_integral")
 #define A_STATIC_ASSERT_TYPE(...)           static_assert(std::is_same<__VA_ARGS__>::value, "std::is_same")

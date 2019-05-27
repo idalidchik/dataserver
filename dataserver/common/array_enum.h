@@ -35,6 +35,14 @@ struct array_enum_t
     T * end() noexcept {
         return std::end(elem);
     }
+    template<enum_type t> T & at() {
+        static_assert(size_t(t) < N, "at");
+        return elem[size_t(t)];
+    }
+    template<enum_type t> T const & at() const {
+        static_assert(size_t(t) < N, "at");
+        return elem[size_t(t)];
+    }
 };
 
 template<typename T>
@@ -100,6 +108,13 @@ struct bitmask_enum_t
     void clr_bit() {
         static_assert(static_cast<size_t>(i) < bitmask<mask_type>::max_bit, "");
         clr_bit(i);
+    }
+};
+
+template<typename T, size_t N, class enum_type>
+struct init_array_enum : array_enum_t<T, N, enum_type> {
+    init_array_enum() {
+        memset_zero(this->elem);
     }
 };
 

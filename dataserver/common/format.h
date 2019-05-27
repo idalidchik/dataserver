@@ -55,7 +55,7 @@ const char * format_s(char(&buf)[buf_size], const char * const str, Ts&&... para
         SDL_ASSERT((strcount(str, "%") - 2 * strcount(str, "%%")) == sizeof...(params));
         const auto count = snprintf(buf, buf_size, str, std::forward<Ts>(params)...);
         A_STATIC_CHECK_TYPE(const int, count);
-        if ((count > 0) && (count < buf_size)) {
+        if ((count > 0) && (count < (int)buf_size)) {
             buf[buf_size-1] = 0;
             return buf;
         }
@@ -70,16 +70,19 @@ std::string to_string_format_s(const char * const mask, Ts&&... params) {
     if (is_str_valid(mask)) {
         enum { param_num = sizeof...(params) };
         SDL_ASSERT((strcount(mask, "%") - 2 * strcount(mask, "%%")) == param_num);
-        std::string str(::strlen(mask) + param_num * 64, char(0)); // reserve estimate size
-        for (;;) {
-            const auto count = snprintf(&str[0], str.size(), mask, std::forward<Ts>(params)...);
-            A_STATIC_CHECK_TYPE(const int, count);
-            if ((count > 0) && (count <= str.size())) {
+        enum { buf_size = 128 };
+        char buf[buf_size];
+        const auto count = snprintf(buf, buf_size, mask, std::forward<Ts>(params)...);
+        if (count > 0) {
+            if (count < buf_size) {
+                return std::string(buf);
+            }
+            std::string str(count + 1, char(0));
+            if (snprintf(&str[0], count + 1, // + 1 for trailing zero
+                mask, std::forward<Ts>(params)...) == count) {
                 str.resize(count);
                 return str;
             }
-            SDL_WARNING(0);
-            str.resize(str.size() * 3 / 2 + 4); // try to grow by 50%
         }
     }
     SDL_ASSERT(!"to_string_format");
@@ -110,7 +113,7 @@ const wchar_t * wide_format_s(wchar_t(&buf)[buf_size], const wchar_t * const str
         SDL_ASSERT((wstrcount(str, L"%") - 2 * wstrcount(str, L"%%")) == sizeof...(params));
         const auto count = swprintf(buf, buf_size, str, std::forward<Ts>(params)...);
         A_STATIC_CHECK_TYPE(const int, count);
-        if ((count > 0) && (count < buf_size)) {
+        if ((count > 0) && (count < (int)buf_size)) {
             buf[buf_size-1] = 0;
             return buf;
         }
@@ -120,44 +123,22 @@ const wchar_t * wide_format_s(wchar_t(&buf)[buf_size], const wchar_t * const str
     return buf;
 }
 
-// precision - number of digits after dot; trailing zeros are discarded
-template<int buf_size>
+struct format_detail {
+    // precision - number of digits after dot; trailing zeros are discarded
+    static const char * format_double(char * buf, size_t buf_size, double value, int precision);
+};
+
+template<size_t buf_size> inline
 const char * format_double(char(&buf)[buf_size], const double value, const int precision) {
     static_assert(buf_size > 20, "");
     static_assert(buf_size > limits::double_max_digits10, "");
     static_assert(limits::double_max_digits10 == 17, "");
-#if SDL_DEBUG
-    memset_zero(buf);
-#endif
-    SDL_ASSERT((precision > 0) || debug::is_unit_test());
-    SDL_ASSERT((precision < buf_size - 1) || debug::is_unit_test());
-    int c = snprintf(buf, buf_size, "%#.*f", 
-        a_min_max<int, 0, limits::double_max_digits10>(precision),
-        value); // print '.' char even if the value is integer
-    if (c > 0) { 
-        SDL_ASSERT(c < buf_size);
-        c = a_min<int, limits::double_max_digits10>(a_min<int, buf_size - 1>(c));
-        char * p = buf + c - 1; // pointer to last meaning char 
-        while ((p > buf) && (*p == '0')) {
-            --p;
-        }
-        SDL_ASSERT(p >= buf);
-        if ((*p == '.') || (*p == ',')) {
-            --p;
-        }
-        SDL_ASSERT((p - buf + 1) >= 0);
-        p[1] = 0;
-        while(--p >= buf) {
-            if (*p == ',') {
-                *p = '.';
-                break;
-            }
-        }
-        return buf;
-    }
-    SDL_ASSERT(0);
-    buf[0] = 0;
-    return buf;
+    return format_detail::format_double(buf, buf_size, value, precision);
+}
+
+inline std::string format_double(const double value, const int precision) {
+    char buf[64];
+    return format_double(buf, value, precision);
 }
 
 } // sdl

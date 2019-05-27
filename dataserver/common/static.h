@@ -26,6 +26,7 @@ using int64 = std::int64_t;
 using uint64 = std::uint64_t;
 typedef long long long_long;
 typedef long long unsigned long_long_unsigned;
+using llu = long_long_unsigned;
 
 struct is_32_bit { enum { value = (sizeof(void *) == sizeof(std::uint32_t)) }; };
 struct is_64_bit { enum { value = (sizeof(void *) == sizeof(std::uint64_t)) }; };
@@ -148,6 +149,12 @@ template <class T> inline constexpr T a_delta(const T a, const T b)
     return (a < b) ? (b - a) : (a - b);
 }
 
+template <class T> inline constexpr T a_square(const T a)
+{
+    static_assert(sizeof(T) <= sizeof(double), "");
+    return a * a;
+}
+
 template <class T> inline constexpr int a_sign(const T v)
 {
     static_assert(sizeof(T) <= sizeof(double), "");
@@ -168,6 +175,11 @@ inline constexpr uint32 a_rotl32(const uint32 x, const uint32 r)
 inline constexpr bool fequal(double const f1, double const f2)
 {
     return a_abs(f1 - f2) <= limits::fepsilon;
+}
+
+inline constexpr bool fequal_epsilon(double f1, double f2, double fepsilon)
+{
+    return a_abs(f1 - f2) <= fepsilon;
 }
 
 inline constexpr bool fpositive(double const f1)
@@ -317,14 +329,14 @@ size_t count_of(Type const(&)[n])
     return n;
 }
 
-template <unsigned long N> struct binary;
+template <uint64 N> struct binary;
 
 template <> struct binary<0>
 {
     static unsigned const value = 0;
 };
 
-template <unsigned long N>
+template <uint64 N>
 struct binary
 {
     static unsigned const value = 
@@ -332,14 +344,14 @@ struct binary
             | (N % 10);                 // to lowest bit
 };
 
-template <unsigned long N> struct binary_1;
+template <uint64 N> struct binary_1;
 template <> struct binary_1<0> {
     enum { value = 0 };
 };
 
-template <unsigned long N>
+template <uint64 N>
 struct binary_1 {
-    enum { value = N ? (1 + binary_1<N & (N - 1)>::value) : 0 };
+    enum { value = 1 + binary_1<N & (N - 1)>::value }; // N > 0
 };
 
 

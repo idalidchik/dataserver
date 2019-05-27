@@ -10,7 +10,7 @@ endif(UNIX)
 
 set(SDL_VERSION_MAJOR 1)
 set(SDL_VERSION_MINOR 0)
-set(SDL_VERSION_REVISION 31)
+set(SDL_VERSION_REVISION 38)
 set(SDL_VERSION ${SDL_VERSION_MAJOR}.${SDL_VERSION_MINOR}.${SDL_VERSION_REVISION})
 
 string(TIMESTAMP SDL_TIMESTAMP %s UTC)
@@ -101,7 +101,9 @@ set( SDL_HEADER_COMMON
   dataserver/common/noncopyable.h
   dataserver/common/singleton.h
   dataserver/common/quantity.h
+  dataserver/common/quantity_hash.h
   dataserver/common/static.h
+  dataserver/common/finally.h
   dataserver/common/array.h
   dataserver/common/vector_buf.h
   dataserver/common/array_enum.h
@@ -123,10 +125,12 @@ set( SDL_HEADER_COMMON
   dataserver/common/datetime.h
   dataserver/common/bitmask.h
   dataserver/common/version_t.h
+  dataserver/common/optional.h
   )
 
 set( SDL_SOURCE_COMMON
   dataserver/common/static.cpp
+  dataserver/common/format.cpp
   dataserver/common/array.cpp
   dataserver/common/vector_buf.cpp
   dataserver/common/algorithm.cpp
@@ -154,8 +158,10 @@ set( SDL_HEADER_UTILS
   )
 
 set( SDL_HEADER_NUMERIC
-  dataserver/numeric/union_find_t.h
-  dataserver/numeric/union_find_t.cpp
+  dataserver/numeric/union_find.h
+  dataserver/numeric/union_find.cpp
+  dataserver/numeric/interval_map.h
+  dataserver/numeric/interval_map.cpp
   )
 
 set( SDL_SOURCE_FILESYS
