@@ -162,6 +162,8 @@ set( SDL_HEADER_NUMERIC
   dataserver/numeric/union_find.cpp
   dataserver/numeric/interval_map.h
   dataserver/numeric/interval_map.cpp
+  dataserver/numeric/priority_queue.h
+  dataserver/numeric/priority_queue.cpp
   )
 
 set( SDL_SOURCE_FILESYS
